@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ポイ活MAX比較シミュレーター</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:#f5f4f0;color:#1a1a18;min-height:100vh;padding:1.5rem 1rem}
+.container{max-width:780px;margin:0 auto}
+h1{font-size:18px;font-weight:600;margin-bottom:1.25rem;color:#1a1a18;display:flex;align-items:center;gap:8px}
+h1 span{font-size:13px;font-weight:400;color:#888;margin-left:4px}
+.page-toggle{display:flex;gap:0;margin-bottom:1rem;border:1px solid #ddd;border-radius:8px;overflow:hidden;width:fit-content;background:#fff}
+.page-btn{padding:7px 20px;font-size:13px;cursor:pointer;border:none;background:transparent;color:#888;transition:background .12s;font-family:inherit}
+.page-btn.active{background:#f0eeea;color:#1a1a18;font-weight:500}
+.section{border:1px solid #e2e0d8;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem;background:#fff}
+.section-title{font-size:12px;font-weight:600;color:#888;margin-bottom:.75rem;display:flex;align-items:center;gap:6px;letter-spacing:.04em;text-transform:uppercase}
+.row{display:flex;align-items:center;gap:12px;margin-bottom:.65rem;flex-wrap:wrap}
+.row label.row-label{font-size:13px;color:#1a1a18;min-width:168px;flex-shrink:0}
+.radio-group{display:flex;gap:6px;flex-wrap:wrap}
+.radio-group label{display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;padding:5px 12px;border:1px solid #ddd;border-radius:8px;color:#1a1a18;transition:background .12s;background:#fff;font-family:inherit}
+.radio-group input[type=radio]{display:none}
+.radio-group label:has(input:checked){background:#f0eeea;border-color:#b0ae9e;font-weight:500}
+.check-label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:5px 12px;border:1px solid #ddd;border-radius:8px;color:#1a1a18;background:#fff}
+.check-label input[type=checkbox]{accent-color:#444;width:14px;height:14px}
+input[type=number],input[type=text],select{height:36px;padding:0 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a18;outline:none;transition:border-color .15s}
+input[type=number]:focus,input[type=text]:focus,select:focus{border-color:#888}
+input[type=number]{width:120px}
+.child-row{display:grid;grid-template-columns:1fr 90px auto;gap:8px;align-items:center;margin-bottom:6px}
+.add-btn{font-size:12px;padding:5px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;color:#444;font-family:inherit;margin-top:4px}
+.add-btn:hover{background:#f0eeea}
+.remove-btn{font-size:11px;padding:4px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;color:#888;font-family:inherit}
+.calc-btn{width:100%;padding:.8rem;font-size:14px;font-weight:600;cursor:pointer;border-radius:10px;border:none;background:#1a1a18;color:#fff;font-family:inherit;margin-top:.25rem;letter-spacing:.02em;transition:opacity .15s}
+.calc-btn:hover{opacity:.85}
+.hint{font-size:11px;color:#aaa;margin-top:4px;line-height:1.5}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
+@media(max-width:520px){.result-grid{grid-template-columns:1fr}}
+.result-card{border:1px solid #e2e0d8;border-radius:12px;padding:1rem 1.25rem;background:#fff}
+.result-card.gold-card{border-color:#c9a227;border-width:1.5px}
+.result-card.plat-card{border-color:#9a9a9a;border-width:1.5px}
+.card-head{font-size:14px;font-weight:600;margin-bottom:.85rem;display:flex;align-items:center;gap:6px}
+.gold-head{color:#9a7a10}
+.plat-head{color:#5a5a5a}
+.metric-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid #f0eeea;font-size:12.5px}
+.metric-row:last-of-type{border-bottom:none}
+.metric-label{color:#888}
+.metric-val{font-weight:500;color:#1a1a18}
+.total-row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;font-size:13.5px;font-weight:600;margin-top:4px;border-top:1px solid #ddd}
+.billing-row{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;font-size:12.5px;margin-top:6px}
+.billing-label{color:#888}
+.billing-val{font-weight:500;color:#c0392b}
+.net-row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;font-size:14px;font-weight:700;margin-top:4px;border-top:2px solid #ddd}
+.pos{color:#1d8a4e}
+.neg{color:#c0392b}
+.sub-val{font-size:11px;color:#aaa;margin-top:3px;text-align:right}
+.detail-table{width:100%;font-size:12px;border-collapse:collapse;margin-top:.5rem}
+.detail-table th{text-align:left;font-weight:600;font-size:11px;color:#aaa;padding:5px 8px;border-bottom:1px solid #e2e0d8;letter-spacing:.04em}
+.detail-table td{padding:5px 8px;border-bottom:1px solid #f0eeea;color:#333;font-size:12.5px}
+.detail-table tr:last-child td{border-bottom:none}
+.note{font-size:11px;color:#aaa;margin-top:.75rem;line-height:1.6;padding:0 .25rem}
+.back-btn{font-size:13px;padding:6px 14px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;color:#555;font-family:inherit;margin-top:.75rem;display:inline-flex;align-items:center;gap:4px}
+.back-btn:hover{background:#f0eeea}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>ポイ活MAX比較シミュレーター <span>dカード GOLD / PLATINUM</span></h1>
+
+<div class="page-toggle">
+  <button class="page-btn active" id="btn-input" onclick="showPage('input')">入力画面</button>
+  <button class="page-btn" id="btn-result" onclick="showPage('result')">比較シート</button>
+</div>
+
+<div id="page-input">
+
+<div class="section">
+  <div class="section-title">各種割引</div>
+
+  <div class="row">
+    <label class="row-label">みんなドコモ割</label>
+    <div class="radio-group">
+      <label><input type="radio" name="docomo-wari" value="2"><span>2回線</span></label>
+      <label><input type="radio" name="docomo-wari" value="3" checked><span>3回線</span></label>
+    </div>
+  </div>
+
+  <div class="row">
+    <label class="row-label">長期利用割</label>
+    <div class="radio-group">
+      <label><input type="radio" name="chouki" value="10" checked><span>10年</span></label>
+      <label><input type="radio" name="chouki" value="20"><span>20年</span></label>
+    </div>
+  </div>
+
+  <div class="row">
+    <label class="row-label">dカード支払い割</label>
+    <div class="radio-group">
+      <label><input type="radio" name="dcard-wari" value="R" checked><span>R（REGULAR）</span></label>
+      <label><input type="radio" name="dcard-wari" value="UGP"><span>U・G・P</span></label>
+    </div>
+  </div>
+
+  <div class="row">
+    <label class="row-label">光・home5Gセット割</label>
+    <label class="check-label"><input type="checkbox" id="hikari-set"><span>あり</span></label>
+  </div>
+
+  <div class="row">
+    <label class="row-label">ドコモでんきセット割</label>
+    <label class="check-label"><input type="checkbox" id="denki-set"><span>あり</span></label>
+  </div>
+
+  <div class="row">
+    <label class="row-label">通話オプション</label>
+    <div class="radio-group">
+      <label><input type="radio" name="voice" value="none" checked><span>なし</span></label>
+      <label><input type="radio" name="voice" value="5min"><span>5分</span></label>
+      <label><input type="radio" name="voice" value="kakehoudai"><span>かけ放題</span></label>
+    </div>
+  </div>
+
+  <div class="row">
+    <label class="row-label">光支払い</label>
+    <div class="radio-group">
+      <label><input type="radio" name="hikari-pay" value="none" checked><span>なし</span></label>
+      <label><input type="radio" name="hikari-pay" value="ari"><span>あり</span></label>
+      <label><input type="radio" name="hikari-pay" value="value"><span>バリュー</span></label>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">電気・ポイント情報</div>
+  <div class="row">
+    <label class="row-label">電気料金／月</label>
+    <input type="number" id="denki-yen" placeholder="例: 8000" min="0"> <span style="font-size:13px;color:#888;margin-left:2px">円</span>
+  </div>
+  <div class="row">
+    <label class="row-label">ポイ活F特典 対象回線数</label>
+    <input type="number" id="family-lines" placeholder="0" min="0" max="20" value="0" style="width:80px">
+    <span style="font-size:11px;color:#aaa">回線</span>
+  </div>
+  <p class="hint" style="margin-left:168px;margin-top:-4px;margin-bottom:.5rem">対象：MAX系・mini・20・eximo・ahamo・irumo・U15・はじスマ</p>
+  <div class="row">
+    <label class="row-label">dカードショッピング額／月</label>
+    <input type="number" id="shopping-yen" placeholder="例: 50000" min="0"> <span style="font-size:13px;color:#888;margin-left:2px">円</span>
+  </div>
+  <div class="row">
+    <label class="row-label">PLATINUM でんき還元率</label>
+    <div class="radio-group">
+      <label><input type="radio" name="plat-rate" value="0.10" checked><span>10%</span></label>
+      <label><input type="radio" name="plat-rate" value="0.15"><span>15%</span></label>
+      <label><input type="radio" name="plat-rate" value="0.20"><span>20%</span></label>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">子回線情報</div>
+  <div id="child-list"></div>
+  <button class="add-btn" onclick="addChild()">＋ 子回線を追加</button>
+  <p class="hint" style="margin-top:8px">プラン名とpt/月を入力。家族カード申込でGOLD +500pt・PLATINUM +500pt加算。</p>
+</div>
+
+<button class="calc-btn" onclick="calculate()">比較シートを表示 →</button>
+
+</div>
+
+<div id="page-result" style="display:none">
+  <div id="result-content"></div>
+  <button class="back-btn" onclick="showPage('input')">← 入力に戻る</button>
+</div>
+
+</div>
+
+<script>
+const GOLD_FEE = 11000;
+const PLAT_FEE = 29700;
+const MAX_MONTHLY_UP = 3300;
+
+let children = [];
+
+function addChild(){
+  children.push({id:Date.now(),plan:'',pt:0,familyCard:false});
+  renderChildren();
+}
+function removeChild(id){
+  children=children.filter(c=>c.id!==id);
+  renderChildren();
+}
+function updateChild(id,key,val){
+  const c=children.find(x=>x.id===id);
+  if(c)c[key]=val;
+}
+function renderChildren(){
+  const el=document.getElementById('child-list');
+  if(children.length===0){
+    el.innerHTML='<p style="font-size:13px;color:#aaa;margin-bottom:.5rem">子回線なし</p>';
+    return;
+  }
+  el.innerHTML=children.map(c=>`
+    <div class="child-row">
+      <input type="text" placeholder="プラン名（例: eximo）" value="${c.plan}" onchange="updateChild(${c.id},'plan',this.value)">
+      <input type="number" placeholder="pt/月" value="${c.pt||''}" min="0" onchange="updateChild(${c.id},'pt',+this.value)" style="width:88px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <label class="check-label" style="padding:4px 10px;font-size:12px;white-space:nowrap"><input type="checkbox" ${c.familyCard?'checked':''} onchange="updateChild(${c.id},'familyCard',this.checked)"><span>家族カード</span></label>
+        <button class="remove-btn" onclick="removeChild(${c.id})">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function getVal(name){
+  const el=document.querySelector(`[name="${name}"]:checked`);
+  return el?el.value:null;
+}
+function getCheck(id){return document.getElementById(id).checked}
+function getNum(id){return parseFloat(document.getElementById(id).value)||0}
+function fmt(n){return Math.round(n).toLocaleString('ja-JP')}
+function fmtSign(n){return (n>=0?'+':'')+fmt(n)}
+
+function calcBase(isPlat){
+  const docomo=+getVal('docomo-wari')||3;
+  const chouki=+getVal('chouki')||10;
+  const dcardType=getVal('dcard-wari');
+  const hikariSet=getCheck('hikari-set');
+  const denkiSet=getCheck('denki-set');
+  const voice=getVal('voice');
+  const hikariPay=getVal('hikari-pay');
+  const denkiYen=getNum('denki-yen');
+  const familyLines=getNum('family-lines');
+  const shoppingYen=getNum('shopping-yen');
+  const platRate=parseFloat(getVal('plat-rate'))||0.10;
+
+  let pt1=0;
+  const dDiscount={2:550,3:1210};
+  const cDiscount={10:110,20:220};
+  pt1+=dDiscount[docomo]||0;
+  pt1+=cDiscount[chouki]||0;
+  pt1+=(dcardType==='R')?220:550;
+  if(hikariSet)pt1+=1210;
+  if(denkiSet)pt1+=110;
+  if(voice==='5min')pt1+=880;
+  if(voice==='kakehoudai')pt1+=1980;
+
+  let pt2=0;
+  if(hikariPay==='ari')pt2=500;
+  if(hikariPay==='value')pt2=100;
+
+  let pt3=0;
+  if(denkiYen>0){
+    if(isPlat){pt3=Math.min(Math.round(denkiYen*platRate),5000);}
+    else{pt3=Math.min(Math.round(denkiYen*0.01*100),2000);}
+  }
+
+  const pt4=familyLines*(isPlat?300:100);
+
+  let pt5=0;
+  if(shoppingYen>0){
+    if(isPlat){
+      const thr=50000;
+      pt5=shoppingYen<=thr?Math.round(shoppingYen*platRate):Math.round(thr*platRate+(shoppingYen-thr)*0.01);
+    } else {
+      const thr=100000;
+      pt5=shoppingYen<=thr?Math.round(shoppingYen*0.05):Math.round(thr*0.05+(shoppingYen-thr)*0.01);
+    }
+    pt5=Math.min(pt5,5000);
+  }
+
+  let pt6=0;
+  const childRows=children.map(c=>{
+    const famCardPt=c.familyCard?500:0;
+    pt6+=(c.pt||0)+famCardPt;
+    return{plan:c.plan||'未入力',pt:c.pt||0,famCardPt};
+  });
+
+  const fee=isPlat?PLAT_FEE:GOLD_FEE;
+  const annualBilling=MAX_MONTHLY_UP*12+fee;
+  const totalPtMonth=pt1+pt2+pt3+pt4+pt5+pt6;
+  const totalPtYear=totalPtMonth*12;
+  const netYear=totalPtYear-annualBilling;
+
+  return{pt1,pt2,pt3,pt4,pt5,pt6,totalPtMonth,totalPtYear,annualBilling,fee,netYear,childRows,
+    docomo,chouki,dcardType,hikariSet,denkiSet,voice,hikariPay,denkiYen,familyLines,shoppingYen,platRate};
+}
+
+function calculate(){
+  const g=calcBase(false);
+  const p=calcBase(true);
+  const voiceL={none:'なし','5min':'5分通話',kakehoudai:'かけ放題'};
+  const hikariPayL={none:'なし',ari:'あり',value:'バリュー'};
+
+  const childHtml=(rows)=>rows.length===0
+    ?'<tr><td colspan="3" style="color:#aaa">子回線なし</td></tr>'
+    :rows.map(r=>`<tr><td>${r.plan}</td><td style="text-align:right">${fmt(r.pt)}</td><td style="text-align:right">${r.famCardPt>0?'+'+fmt(r.famCardPt):'-'}</td></tr>`).join('');
+
+  const cardHtml=(d,isPlat)=>`
+    <div class="result-card ${isPlat?'plat-card':'gold-card'}">
+      <div class="card-head ${isPlat?'plat-head':'gold-head'}">${isPlat?'💎 dカード PLATINUM':'🥇 dカード GOLD'}</div>
+      <div class="metric-row"><span class="metric-label">① 基本料金ポイント/月</span><span class="metric-val">${fmt(d.pt1)} pt</span></div>
+      <div class="metric-row"><span class="metric-label">② ドコモ光ポイント/月</span><span class="metric-val">${fmt(d.pt2)} pt</span></div>
+      <div class="metric-row"><span class="metric-label">③ でんきポイント/月${isPlat?' ('+Math.round(d.platRate*100)+'%)':''}</span><span class="metric-val">${fmt(d.pt3)} pt</span></div>
+      <div class="metric-row"><span class="metric-label">④ ポイ活F特典/月</span><span class="metric-val">${fmt(d.pt4)} pt</span></div>
+      <div class="metric-row"><span class="metric-label">⑤ ショッピング還元/月</span><span class="metric-val">${fmt(d.pt5)} pt</span></div>
+      <div class="metric-row"><span class="metric-label">⑥ 子回線合計/月</span><span class="metric-val">${fmt(d.pt6)} pt</span></div>
+      <div class="total-row"><span>⑨ 月間合計</span><span>${fmt(d.totalPtMonth)} pt</span></div>
+      <div class="total-row" style="font-size:12.5px;font-weight:500;border-top:none;padding-top:0"><span>年間ポイント合計</span><span>${fmt(d.totalPtYear)} pt</span></div>
+      <div class="billing-row"><span class="billing-label">⑦ 月額アップ×12</span><span class="billing-val">−${fmt(MAX_MONTHLY_UP*12)} 円</span></div>
+      <div class="billing-row"><span class="billing-label">年会費</span><span class="billing-val">−${fmt(d.fee)} 円</span></div>
+      <div class="billing-row"><span class="billing-label">⑧ 年間請求増加分</span><span class="billing-val">−${fmt(d.annualBilling)} 円</span></div>
+      <div class="net-row"><span>🎯 年間実質メリット</span><span class="${d.netYear>=0?'pos':'neg'}">${fmtSign(d.netYear)} pt</span></div>
+      <div class="sub-val">月々 ${fmt(Math.round(d.netYear/12))} pt</div>
+    </div>`;
+
+  document.getElementById('result-content').innerHTML=`
+    <div class="result-grid">
+      ${cardHtml(g,false)}
+      ${cardHtml(p,true)}
+    </div>
+    <div class="section">
+      <div class="section-title">入力内容の確認</div>
+      <table class="detail-table">
+        <tbody>
+          <tr><td>みんなドコモ割</td><td>${g.docomo}回線</td><td>長期利用割</td><td>${g.chouki}年</td></tr>
+          <tr><td>dカード支払い割</td><td>${g.dcardType}</td><td>光・home5Gセット割</td><td>${g.hikariSet?'あり':'なし'}</td></tr>
+          <tr><td>でんきセット割</td><td>${g.denkiSet?'あり':'なし'}</td><td>通話オプション</td><td>${voiceL[g.voice]||'-'}</td></tr>
+          <tr><td>光支払い</td><td>${hikariPayL[g.hikariPay]||'-'}</td><td>電気料金/月</td><td>${g.denkiYen?fmt(g.denkiYen)+'円':'未入力'}</td></tr>
+          <tr><td>F特典対象回線数</td><td>${g.familyLines}回線</td><td>ショッピング額/月</td><td>${g.shoppingYen?fmt(g.shoppingYen)+'円':'未入力'}</td></tr>
+        </tbody>
+      </table>
+      ${g.childRows.length>0?`
+      <table class="detail-table" style="margin-top:.75rem">
+        <thead><tr><th>子回線プラン</th><th style="text-align:right">pt/月</th><th style="text-align:right">家族カード</th></tr></thead>
+        <tbody>${childHtml(g.childRows)}</tbody>
+      </table>`:''}
+    </div>
+    <p class="note">※ dポイントはdカードの請求充当が最もお得です。月額アップ分はポイ活MAXプランへの変更による差額（3,300円/月）を想定しています。でんきポイントのGOLDは電気代×1%（上限2,000pt/月）、PLATINUMは選択した還元率（上限5,000pt/月）で計算しています。</p>
+  `;
+  showPage('result');
+}
+
+function showPage(page){
+  document.getElementById('page-input').style.display=page==='input'?'block':'none';
+  document.getElementById('page-result').style.display=page==='result'?'block':'none';
+  document.getElementById('btn-input').classList.toggle('active',page==='input');
+  document.getElementById('btn-result').classList.toggle('active',page==='result');
+}
+
+renderChildren();
+</script>
+</body>
+</html>
