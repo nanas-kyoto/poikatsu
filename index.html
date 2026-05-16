@@ -79,6 +79,7 @@ input[type=number]{width:120px}
   <div class="row">
     <label class="row-label">みんなドコモ割</label>
     <div class="radio-group">
+      <label><input type="radio" name="docomo-wari" value="none"><span>なし</span></label>
       <label><input type="radio" name="docomo-wari" value="2"><span>2回線</span></label>
       <label><input type="radio" name="docomo-wari" value="3" checked><span>3回線</span></label>
     </div>
@@ -87,6 +88,7 @@ input[type=number]{width:120px}
   <div class="row">
     <label class="row-label">長期利用割</label>
     <div class="radio-group">
+      <label><input type="radio" name="chouki" value="none"><span>なし</span></label>
       <label><input type="radio" name="chouki" value="10" checked><span>10年</span></label>
       <label><input type="radio" name="chouki" value="20"><span>20年</span></label>
     </div>
@@ -220,8 +222,10 @@ function fmt(n){return Math.round(n).toLocaleString('ja-JP')}
 function fmtSign(n){return (n>=0?'+':'')+fmt(n)}
 
 function calcBase(isPlat){
-  const docomo=+getVal('docomo-wari')||3;
-  const chouki=+getVal('chouki')||10;
+  const _docomo=getVal('docomo-wari');
+  const docomo=(_docomo&&_docomo!=='none')?+_docomo:0;
+  const _chouki=getVal('chouki');
+  const chouki=(_chouki&&_chouki!=='none')?+_chouki:0;
   const dcardType=getVal('dcard-wari');
   const hikariSet=getCheck('hikari-set');
   const denkiSet=getCheck('denki-set');
@@ -233,8 +237,8 @@ function calcBase(isPlat){
   const platRate=parseFloat(getVal('plat-rate'))||0.10;
 
   let pt1=0;
-  const dDiscount={2:550,3:1210};
-  const cDiscount={10:110,20:220};
+  const dDiscount={0:0,2:550,3:1210};
+  const cDiscount={0:0,10:110,20:220};
   pt1+=dDiscount[docomo]||0;
   pt1+=cDiscount[chouki]||0;
   pt1+=(dcardType==='R')?220:550;
@@ -321,7 +325,7 @@ function calculate(){
       <div class="section-title">入力内容の確認</div>
       <table class="detail-table">
         <tbody>
-          <tr><td>みんなドコモ割</td><td>${g.docomo}回線</td><td>長期利用割</td><td>${g.chouki}年</td></tr>
+          <tr><td>みんなドコモ割</td><td>${g.docomo?g.docomo+'回線':'なし'}</td><td>長期利用割</td><td>${g.chouki?g.chouki+'年':'なし'}</td></tr>
           <tr><td>dカード支払い割</td><td>${g.dcardType}</td><td>光・home5Gセット割</td><td>${g.hikariSet?'あり':'なし'}</td></tr>
           <tr><td>でんきセット割</td><td>${g.denkiSet?'あり':'なし'}</td><td>通話オプション</td><td>${voiceL[g.voice]||'-'}</td></tr>
           <tr><td>光支払い</td><td>${hikariPayL[g.hikariPay]||'-'}</td><td>電気料金/月</td><td>${g.denkiYen?fmt(g.denkiYen)+'円':'未入力'}</td></tr>
