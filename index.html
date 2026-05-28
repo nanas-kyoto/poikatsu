@@ -148,13 +148,14 @@ input[type=number]{width:120px}
     <input type="number" id="shopping-yen" placeholder="例: 50000" min="0"> <span style="font-size:13px;color:#888;margin-left:2px">円</span>
   </div>
   <div class="row">
-    <label class="row-label">PLATINUM でんき還元率</label>
+    <label class="row-label">PLATINUM還元率</label>
     <div class="radio-group">
-      <label><input type="radio" name="plat-rate" value="0.10" checked><span>10%</span></label>
-      <label><input type="radio" name="plat-rate" value="0.15"><span>15%</span></label>
-      <label><input type="radio" name="plat-rate" value="0.20"><span>20%</span></label>
+      <label><input type="radio" name="plat-rate" value="10" checked><span>10%</span></label>
+      <label><input type="radio" name="plat-rate" value="15"><span>15%</span></label>
+      <label><input type="radio" name="plat-rate" value="20"><span>20%</span></label>
     </div>
   </div>
+
 </div>
 
 <div class="section">
@@ -213,8 +214,9 @@ function renderChildren(){
 }
 
 function getVal(name){
-  const el=document.querySelector(`[name="${name}"]:checked`);
-  return el?el.value:null;
+  const els=document.querySelectorAll(`[name="${name}"]`);
+  for(const el of els){ if(el.checked) return el.value; }
+  return null;
 }
 function getCheck(id){return document.getElementById(id).checked}
 function getNum(id){return parseFloat(document.getElementById(id).value)||0}
@@ -234,41 +236,61 @@ function calcBase(isPlat){
   const denkiYen=getNum('denki-yen');
   const familyLines=getNum('family-lines');
   const shoppingYen=getNum('shopping-yen');
-  const platRate=parseFloat(getVal('plat-rate'))||0.10;
 
-  let pt1=0;
-  const dDiscount={0:0,2:550,3:1210};
-  const cDiscount={0:0,10:110,20:220};
-  pt1+=dDiscount[docomo]||0;
-  pt1+=cDiscount[chouki]||0;
-  pt1+=(dcardType==='R')?220:550;
-  if(hikariSet)pt1+=1210;
-  if(denkiSet)pt1+=110;
-  if(voice==='5min')pt1+=880;
-  if(voice==='kakehoudai')pt1+=1980;
+  // PLATINUM還元率：ラジオボタンから取得（10/15/20 → 0.10/0.15/0.20）
+  let platRate = 0.10;
+  document.querySelectorAll('[name="plat-rate"]').forEach(el => { if(el.checked) platRate = parseInt(el.value,10)/100; });
+  const rate = isPlat ? platRate : 0.10; // GOLD固定10%
 
+  // 月額料金を自動計算（税抜）
+  // ポイ活MAX基本料金: 9,570円（税抜）から各割引を引く
+  const BASE_MONTHLY = 9570; // 税抜
+  const dDiscount={0:0,2:500,3:1100};
+  const cDiscount={0:0,10:100,20:200};
+  let discount = 0;
+  discount += dDiscount[docomo]||0;
+  discount += cDiscount[chouki]||0;
+  discount += (dcardType==='R') ? 200 : 500;
+  if(hikariSet) discount += 1100;
+  if(denkiSet)  discount += 100;
+  if(voice==='5min')       discount -= 800;  // オプション追加=増加
+  if(voice==='kakehoudai') discount -= 1800;
+  const monthlyYen = Math.max(BASE_MONTHLY - discount, 0);
+
+  // pt1: 割引後月額料金（税抜）× 還元率
+  const pt1 = Math.round(monthlyYen * rate);
+
+  // pt2: ドコモ光ポイント（光支払い月額の税抜基準×還元率）
+  // 「あり」=約5,000円、「バリュー」=約6,000円を基準に還元率をかける
   let pt2=0;
-  if(hikariPay==='ari')pt2=500;
-  if(hikariPay==='value')pt2=100;
+  if(hikariPay==='ari')   pt2 = Math.round(5000 * rate);
+  if(hikariPay==='value') pt2 = Math.round(6000 * rate);
 
+  // pt3: でんきポイント（GOLD=10%上限2000pt、PLAT=選択率上限5000pt）
   let pt3=0;
   if(denkiYen>0){
-    if(isPlat){pt3=Math.min(Math.round(denkiYen*platRate),5000);}
-    else{pt3=Math.min(Math.round(denkiYen*0.01*100),2000);}
+    const cap = isPlat ? 5000 : 2000;
+    pt3 = Math.min(Math.round(denkiYen * rate), cap);
   }
 
   const pt4=familyLines*(isPlat?300:100);
 
+  // pt5: ショッピング還元
+  // GOLD: 100,000円まで5%、超過1%
+  // PLAT: 50,000円まで10%固定、超過1%（閾値は還元率によらず50,000円固定）
   let pt5=0;
   if(shoppingYen>0){
     if(isPlat){
-      const thr=50000;
-      pt5=shoppingYen<=thr?Math.round(shoppingYen*platRate):Math.round(thr*platRate+(shoppingYen-thr)*0.01);
+      const thr = 50000; // PLATは常に50,000円が境界
+      pt5 = shoppingYen <= thr
+        ? Math.round(shoppingYen * 0.10)
+        : Math.round(thr * 0.10 + (shoppingYen - thr) * 0.01);
     } else {
-      const thr=100000;
-      pt5=shoppingYen<=thr?Math.round(shoppingYen*0.05):Math.round(thr*0.05+(shoppingYen-thr)*0.01);
+      const thr = 100000; // GOLDは100,000円が境界
+      pt5 = shoppingYen <= thr
+        ? Math.round(shoppingYen * 0.05)
+        : Math.round(thr * 0.05 + (shoppingYen - thr) * 0.01);
     }
-    pt5=Math.min(pt5,5000);
   }
 
   let pt6=0;
@@ -285,7 +307,7 @@ function calcBase(isPlat){
   const netYear=totalPtYear-annualBilling;
 
   return{pt1,pt2,pt3,pt4,pt5,pt6,totalPtMonth,totalPtYear,annualBilling,fee,netYear,childRows,
-    docomo,chouki,dcardType,hikariSet,denkiSet,voice,hikariPay,denkiYen,familyLines,shoppingYen,platRate};
+    docomo,chouki,dcardType,hikariSet,denkiSet,voice,hikariPay,denkiYen,familyLines,shoppingYen,monthlyYen,platRate,rate};
 }
 
 function calculate(){
@@ -301,11 +323,11 @@ function calculate(){
   const cardHtml=(d,isPlat)=>`
     <div class="result-card ${isPlat?'plat-card':'gold-card'}">
       <div class="card-head ${isPlat?'plat-head':'gold-head'}">${isPlat?'💎 dカード PLATINUM':'🥇 dカード GOLD'}</div>
-      <div class="metric-row"><span class="metric-label">① 基本料金ポイント/月</span><span class="metric-val">${fmt(d.pt1)} pt</span></div>
-      <div class="metric-row"><span class="metric-label">② ドコモ光ポイント/月</span><span class="metric-val">${fmt(d.pt2)} pt</span></div>
-      <div class="metric-row"><span class="metric-label">③ でんきポイント/月${isPlat?' ('+Math.round(d.platRate*100)+'%)':''}</span><span class="metric-val">${fmt(d.pt3)} pt</span></div>
+      <div class="metric-row"><span class="metric-label">① 基本料金ポイント/月 (${isPlat?Math.round(d.platRate*100)+'%':'10%'})</span><span class="metric-val">${fmt(d.pt1)} pt</span></div>
+      <div class="metric-row"><span class="metric-label">② ドコモ光ポイント/月 (${isPlat?Math.round(d.platRate*100)+'%':'10%'})</span><span class="metric-val">${fmt(d.pt2)} pt</span></div>
+      <div class="metric-row"><span class="metric-label">③ でんきポイント/月 (${isPlat?Math.round(d.platRate*100)+'%':'10%'})</span><span class="metric-val">${fmt(d.pt3)} pt</span></div>
       <div class="metric-row"><span class="metric-label">④ ポイ活F特典/月</span><span class="metric-val">${fmt(d.pt4)} pt</span></div>
-      <div class="metric-row"><span class="metric-label">⑤ ショッピング還元/月</span><span class="metric-val">${fmt(d.pt5)} pt</span></div>
+      <div class="metric-row"><span class="metric-label">⑤ ショッピング還元/月 (${isPlat?Math.round(d.platRate*100)+'%→1%':'5%→1%'})</span><span class="metric-val">${fmt(d.pt5)} pt</span></div>
       <div class="metric-row"><span class="metric-label">⑥ 子回線合計/月</span><span class="metric-val">${fmt(d.pt6)} pt</span></div>
       <div class="total-row"><span>⑨ 月間合計</span><span>${fmt(d.totalPtMonth)} pt</span></div>
       <div class="total-row" style="font-size:12.5px;font-weight:500;border-top:none;padding-top:0"><span>年間ポイント合計</span><span>${fmt(d.totalPtYear)} pt</span></div>
@@ -328,7 +350,7 @@ function calculate(){
           <tr><td>みんなドコモ割</td><td>${g.docomo?g.docomo+'回線':'なし'}</td><td>長期利用割</td><td>${g.chouki?g.chouki+'年':'なし'}</td></tr>
           <tr><td>dカード支払い割</td><td>${g.dcardType}</td><td>光・home5Gセット割</td><td>${g.hikariSet?'あり':'なし'}</td></tr>
           <tr><td>でんきセット割</td><td>${g.denkiSet?'あり':'なし'}</td><td>通話オプション</td><td>${voiceL[g.voice]||'-'}</td></tr>
-          <tr><td>光支払い</td><td>${hikariPayL[g.hikariPay]||'-'}</td><td>電気料金/月</td><td>${g.denkiYen?fmt(g.denkiYen)+'円':'未入力'}</td></tr>
+          <tr><td>割引後月額（税抜・自動）</td><td>${fmt(g.monthlyYen)}円</td><td>電気料金/月</td><td>${g.denkiYen?fmt(g.denkiYen)+'円':'未入力'}</td></tr>
           <tr><td>F特典対象回線数</td><td>${g.familyLines}回線</td><td>ショッピング額/月</td><td>${g.shoppingYen?fmt(g.shoppingYen)+'円':'未入力'}</td></tr>
         </tbody>
       </table>
